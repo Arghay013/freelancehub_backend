@@ -13,7 +13,9 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "change-me")
 DEBUG = False
 
 ALLOWED_HOSTS = [h.strip() for h in os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",") if h.strip()]
-
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.vercel.app"
+]
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
