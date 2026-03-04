@@ -1,8 +1,12 @@
+from django.conf import settings
 from django.db import models
-from django.contrib.auth.models import User
 
 class Notification(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="notifications"
+    )
     ntype = models.CharField(max_length=50)
     message = models.TextField()
     is_read = models.BooleanField(default=False)
@@ -12,4 +16,6 @@ class Notification(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.user.username}: {self.ntype}"
+        # user model custom হলেও safe
+        uname = getattr(self.user, "username", None) or getattr(self.user, "email", "user")
+        return f"{uname}: {self.ntype}"
