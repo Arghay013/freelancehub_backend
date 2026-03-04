@@ -96,14 +96,13 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # -----------------------
 # ✅ STATIC (Admin CSS fix)
 # -----------------------
-STATIC_URL = "/static/"  # ✅ MUST start with /
+STATIC_URL = "/static/"
+
+WHITENOISE_USE_FINDERS = True
+
+STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
+
 STATIC_ROOT = BASE_DIR / "staticfiles"
-
-# (optional) যদি project এ static/ folder থাকে
-STATICFILES_DIRS = [BASE_DIR / "static"] if (BASE_DIR / "static").exists() else []
-
-# ✅ WhiteNoise storage
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # -----------------------
 # CORS / CSRF
