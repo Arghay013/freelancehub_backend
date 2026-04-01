@@ -8,6 +8,7 @@ from .models import Order
 from .serializers import (
     OrderSerializer,
     OrderCreateSerializer,
+    SellerRequestDecisionSerializer,
     SellerUpdateSerializer,
     BuyerReviewSerializer,
     OrderStatusUpdateSerializer,
@@ -58,7 +59,7 @@ class OrderCreateView(generics.CreateAPIView):
         safe_notify(
             order.seller,
             "ORDER_REQUESTED",
-            f"New request received for '{service.title}'. Please review and send your update.",
+            f"New request received for '{service.title}'. Please accept or reject this request first.",
         )
         safe_notify(
             order.buyer,
@@ -93,6 +94,61 @@ class SellerOrderListView(generics.ListAPIView):
         )
 
 
+class SellerRequestDecisionView(generics.UpdateAPIView):
+    permission_classes = [permissions.IsAuthenticated, IsSeller]
+    serializer_class = SellerRequestDecisionSerializer
+    queryset = Order.objects.select_related("buyer", "seller", "service", "payment").all()
+
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        order = self.get_object()
+        if order.seller != request.user:
+            raise PermissionDenied("Not your order")
+
+        if order.status != Order.STATUS_REQUESTED:
+            raise ValidationError({"detail": "Seller can accept or reject only newly requested orders"})
+
+        ser = self.get_serializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+
+        action = ser.validated_data["action"]
+        note = ser.validated_data.get("seller_update_message", "").strip()
+
+        order.seller_update_message = note
+        order.seller_updated_at = timezone.now()
+
+        if action == "accept":
+            order.status = Order.STATUS_REQUEST_ACCEPTED
+            order.save(update_fields=["seller_update_message", "seller_updated_at", "status", "updated_at"])
+
+            safe_notify(
+                order.buyer,
+                "ORDER_REQUEST_ACCEPTED",
+                f"Seller accepted your request for order #{order.id}. Work can continue now.",
+            )
+            safe_notify(
+                order.seller,
+                "ORDER_REQUEST_ACCEPTED",
+                f"You accepted request for order #{order.id}.",
+            )
+        else:
+            order.status = Order.STATUS_REQUEST_REJECTED
+            order.save(update_fields=["seller_update_message", "seller_updated_at", "status", "updated_at"])
+
+            safe_notify(
+                order.buyer,
+                "ORDER_REQUEST_REJECTED",
+                f"Seller rejected your request for order #{order.id}.",
+            )
+            safe_notify(
+                order.seller,
+                "ORDER_REQUEST_REJECTED",
+                f"You rejected request for order #{order.id}.",
+            )
+
+        return Response(OrderSerializer(order, context={"request": request}).data)
+
+
 class SellerOrderUpdateView(generics.UpdateAPIView):
     permission_classes = [permissions.IsAuthenticated, IsSeller]
     serializer_class = SellerUpdateSerializer
@@ -104,8 +160,8 @@ class SellerOrderUpdateView(generics.UpdateAPIView):
         if order.seller != request.user:
             raise PermissionDenied("Not your order")
 
-        if order.status not in [Order.STATUS_REQUESTED, Order.STATUS_CHANGES_REQUESTED]:
-            raise ValidationError({"detail": "Seller update is allowed only for requested or rejected orders"})
+        if order.status not in [Order.STATUS_REQUEST_ACCEPTED, Order.STATUS_CHANGES_REQUESTED]:
+            raise ValidationError({"detail": "Seller update is allowed only after seller accepts the request or buyer requests changes"})
 
         ser = self.get_serializer(data=request.data)
         ser.is_valid(raise_exception=True)

@@ -52,6 +52,11 @@ class OrderCreateSerializer(serializers.Serializer):
     buyer_requirements = serializers.CharField(allow_blank=True, required=False)
 
 
+class SellerRequestDecisionSerializer(serializers.Serializer):
+    action = serializers.ChoiceField(choices=["accept", "reject"])
+    seller_update_message = serializers.CharField(allow_blank=True, required=False)
+
+
 class SellerUpdateSerializer(serializers.Serializer):
     seller_update_message = serializers.CharField()
 

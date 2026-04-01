@@ -4,6 +4,8 @@ from django.contrib.auth.models import User
 
 class Order(models.Model):
     STATUS_REQUESTED = "REQUESTED"
+    STATUS_REQUEST_ACCEPTED = "REQUEST_ACCEPTED"
+    STATUS_REQUEST_REJECTED = "REQUEST_REJECTED"
     STATUS_SELLER_UPDATED = "SELLER_UPDATED"
     STATUS_CHANGES_REQUESTED = "CHANGES_REQUESTED"
     STATUS_AWAITING_PAYMENT = "AWAITING_PAYMENT"
@@ -12,6 +14,8 @@ class Order(models.Model):
 
     STATUS_CHOICES = [
         (STATUS_REQUESTED, "Requested"),
+        (STATUS_REQUEST_ACCEPTED, "Request Accepted"),
+        (STATUS_REQUEST_REJECTED, "Request Rejected"),
         (STATUS_SELLER_UPDATED, "Seller Updated"),
         (STATUS_CHANGES_REQUESTED, "Changes Requested"),
         (STATUS_AWAITING_PAYMENT, "Awaiting Payment"),
